@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>My Tickets</h2>
+
+<div class="create-box">
+    <h3>Create New Ticket</h3>
+    <form action="{{ url_for('create_ticket') }}" method="post">
+        <input type="text" name="title" placeholder="Problem title" required>
+        <textarea name="description" placeholder="Describe details"></textarea>
+        <button type="submit" class="btn-primary">Create</button>
+    </form>
+</div>
+
+<table class="tickets-table">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Title</th>
+            <th>Status</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for ticket in tickets %}
+        <tr>
+            <td>{{ ticket.id }}</td>
+            <td>{{ ticket.title }}</td>
+            <td><span class="badge {{ ticket.status }}">{{ ticket.status }}</span></td>
+            <td>
+                <a href="{{ url_for('ticket_detail', ticket_id=ticket.id) }}" class="btn-small">Open</a>
+                <form action="{{ url_for('delete_ticket', ticket_id=ticket.id) }}" method="post" style="display:inline;">
+                    <button type="submit" class="btn-danger" onclick="return confirm('Try to delete?')">Delete</button>
+                </form>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

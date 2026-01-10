@@ -1,0 +1,26 @@
+name: Super Deploy
+on:
+  push:
+    branches: ["main"]
+  workflow_dispatch:
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Deploying...
+        run: |
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > deploy_key
+          chmod 600 deploy_key
+          SSH_OPTS="-i $(pwd)/deploy_key -o StrictHostKeyChecking=no -o IdentitiesOnly=yes"
+          BASTION="root@${{ secrets.BASTION_HOST }}"
+          TARGET="${{ secrets.TARGET_USER }}@${{ secrets.TARGET_HOST }}"
+
+          echo "🛠 Тестируем туннель..."
+          ssh $SSH_OPTS -o ProxyCommand="ssh $SSH_OPTS -W %h:%p $BASTION" $TARGET "echo 'SSH пробит!'"
+
+          echo "🚀 Синхронизация файлов..."
+          rsync -az --delete -e "ssh $SSH_OPTS -o ProxyCommand='ssh $SSH_OPTS -W %h:%p $BASTION'" ./ $TARGET:/opt/service-desk-project/
+
+          echo "🐳 Docker Up..."
+          ssh $SSH_OPTS -o ProxyCommand="ssh $SSH_OPTS -W %h:%p $BASTION" $TARGET "cd /opt/service-desk-project && docker compose up -d --build"

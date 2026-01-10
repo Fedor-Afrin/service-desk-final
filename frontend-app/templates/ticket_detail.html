@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="ticket-header">
+    <a href="{{ url_for('dashboard') }}">← Back</a>
+    <h2>#{{ ticket.id }} {{ ticket.title }}</h2>
+    <p>{{ ticket.description }}</p>
+</div>
+
+<div class="reports-section">
+    <h3>Work Reports & Files</h3>
+    
+    {% for report in reports %}
+    <div class="report-card">
+        <p>{{ report.comment }}</p>
+        {% if report.file_path %}
+            <a href="{{ url_for('serve_media', filename=report.file_path) }}" target="_blank">📎 Download File</a>
+        {% endif %}
+        <small>{{ report.created_at }}</small>
+    </div>
+    {% endfor %}
+
+    <div class="add-report">
+        <h4>Add Report</h4>
+        <form action="{{ url_for('add_report', ticket_id=ticket.id) }}" method="post" enctype="multipart/form-data">
+            <textarea name="comment" placeholder="Work done..." required></textarea>
+            <input type="file" name="file">
+            <button type="submit">Add Report</button>
+        </form>
+    </div>
+</div>
+{% endblock %}
