@@ -44,15 +44,11 @@ jobs:
 
           chmod 600 "$HOME/.ssh/config"
 
-          # quick sanity check
-          ls -la "$HOME/.ssh"
-          sed -n '1,120p' "$HOME/.ssh/config"
-
       - name: Upload project to target (rsync)
         shell: bash
         run: |
           set -euo pipefail
-
+          # Синхронизируем всё в правильную папку /opt/demo-docker-deploy/
           rsync -az --delete \
             -e "ssh -F $HOME/.ssh/config" \
             ./ target:/opt/demo-docker-deploy/
@@ -66,10 +62,10 @@ jobs:
             set -euo pipefail
             cd /opt/demo-docker-deploy
 
+            # Перезапуск с пересборкой
             docker compose down || true
-            docker compose build --no-cache
-            docker compose up -d
+            docker compose up -d --build
 
-            echo
+            echo "✅ Статус контейнеров:"
             docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
           CMD

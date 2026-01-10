@@ -22,6 +22,7 @@ services:
     container_name: sd-api
     restart: always
     environment:
+      # Важно: здесь хост 'db' (имя сервиса), а не 'sd-db'
       DATABASE_URL: postgresql://postgres:postgres@db:5432/service_desk_db
     volumes:
       - media_data:/app/media
@@ -34,8 +35,9 @@ services:
     container_name: sd-frontend
     restart: always
     environment:
-      BACKEND_URL: http://api:8000
-      SECRET_KEY: "super-secret-key-change-me"
+      # Важно: используем имя сервиса 'api'
+      - BACKEND_URL=http://api:8000
+      - SECRET_KEY=super-secret-key-change-me
     ports:
       - "8001:5000"
     volumes:
