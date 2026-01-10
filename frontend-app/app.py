@@ -147,4 +147,18 @@ def admin():
         
         requests.post(f"{BACKEND_URL}/auth/users", json={
             "username": username, 
-            "password":
+            "password": password, 
+            "is_admin": is_admin,
+            "is_staff": is_staff 
+        })
+        flash(f'User {username} created', 'success')
+        
+    return render_template('admin.html')
+
+@app.route('/media/<path:filename>')
+def serve_media(filename):
+    if 'user_id' not in session: return "Unauthorized", 401
+    return send_from_directory(MEDIA_FOLDER, filename)
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000)
