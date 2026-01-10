@@ -8,10 +8,12 @@ class UserBase(BaseModel):
 class UserCreate(UserBase):
     password: str
     is_admin: bool = False
+    is_staff: bool = False  # <-- ДОБАВЛЕНО: чтобы при создании можно было назначить сотрудника
 
 class UserResponse(UserBase):
     id: int
     is_admin: bool
+    is_staff: bool          # <-- ДОБАВЛЕНО: чтобы фронтенд знал роль пользователя
     class Config:
         from_attributes = True
 
@@ -28,6 +30,12 @@ class TicketCreate(BaseModel):
     description: str
     creator_id: int
 
+# ДОБАВЛЕНО: Новая схема для редактирования заявки
+class TicketUpdate(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
+    status: Optional[str] = None  # Именно это поле будет менять сотрудник
+
 class TicketResponse(BaseModel):
     id: int
     title: str
@@ -35,6 +43,6 @@ class TicketResponse(BaseModel):
     status: str
     creator_id: int
     assignee_id: Optional[int]
-    created_at: datetime
+    created_at: datetime     # Это поле у тебя уже было, оно будет отдавать дату и время
     class Config:
         from_attributes = True

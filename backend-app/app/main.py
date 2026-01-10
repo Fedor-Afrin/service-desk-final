@@ -14,7 +14,13 @@ app.include_router(tickets.router)
 def create_default_admin():
     db = SessionLocal()
     if not crud.get_user_by_username(db, "admin"):
-        admin_user = schemas.UserCreate(username="admin", password="adminpassword", is_admin=True)
+        # Добавляем is_staff=True, чтобы админ тоже считался сотрудником
+        admin_user = schemas.UserCreate(
+            username="admin", 
+            password="adminpassword", 
+            is_admin=True,
+            is_staff=True  
+        )
         crud.create_user(db, admin_user)
-        print("--- ADMIN USER CREATED: admin / adminpassword ---")
+        print("--- ADMIN / STAFF CREATED ---")
     db.close()

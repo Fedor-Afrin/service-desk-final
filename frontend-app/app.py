@@ -26,6 +26,8 @@ def login():
                 session['user_id'] = user['id']
                 session['username'] = user['username']
                 session['is_admin'] = user['is_admin']
+                # ИЗМЕНЕНО: Сохраняем статус сотрудника в сессию
+                session['is_staff'] = user.get('is_staff', False) 
                 return redirect(url_for('dashboard'))
             else:
                 flash('Invalid credentials', 'error')
@@ -42,7 +44,12 @@ def logout():
 def dashboard():
     if 'user_id' not in session: return redirect(url_for('login'))
     
-    params = {'user_id': session['user_id'], 'is_admin': session['is_admin']}
+    # ИЗМЕНЕНО: Добавлен is_staff в параметры запроса к бэкенду
+    params = {
+        'user_id': session['user_id'], 
+        'is_admin': session['is_admin'],
+        'is_staff': session.get('is_staff', False)
+    }
     resp = requests.get(f"{BACKEND_URL}/tickets/", params=params)
     tickets = resp.json() if resp.status_code == 200 else []
     
@@ -71,11 +78,41 @@ def ticket_detail(ticket_id):
     
     return render_template('ticket_detail.html', ticket=t_resp.json(), reports=r_resp.json())
 
+# НОВЫЙ МАРШРУТ: Обновление статуса/редактирование заявки
+@app.route('/ticket/<int:ticket_id>/update', methods=['POST'])
+def update_ticket(ticket_id):
+    if 'user_id' not in session: return redirect(url_for('login'))
+    
+    # Собираем данные из формы (могут прийти или поля текста, или статус)
+    data = {
+        "status": request.form.get('status'),
+        "title": request.form.get('title'),
+        "description": request.form.get('description')
+    }
+    # Удаляем None значения, чтобы не затереть данные на бэкенде
+    data = {k: v for k, v in data.items() if v is not None}
+    
+    params = {
+        'user_id': session['user_id'],
+        'is_admin': session['is_admin'],
+        'is_staff': session.get('is_staff', False)
+    }
+    
+    resp = requests.put(f"{BACKEND_URL}/tickets/{ticket_id}", json=data, params=params)
+    
+    if resp.status_code == 200:
+        flash('Ticket updated', 'success')
+    else:
+        flash(f"Error: {resp.json().get('detail', 'Update failed')}", 'error')
+        
+    return redirect(url_for('ticket_detail', ticket_id=ticket_id))
+
 @app.route('/ticket/<int:ticket_id>/delete', methods=['POST'])
 def delete_ticket(ticket_id):
     if 'user_id' not in session: return redirect(url_for('login'))
     
-    params = {'user_id': session['user_id']}
+    # ИЗМЕНЕНО: Теперь передаем только флаг админа, так как только он может удалять
+    params = {'is_admin': session.get('is_admin', False)}
     resp = requests.delete(f"{BACKEND_URL}/tickets/{ticket_id}", params=params)
     
     if resp.status_code != 200:
@@ -84,19 +121,6 @@ def delete_ticket(ticket_id):
         flash('Ticket deleted', 'success')
         
     return redirect(url_for('dashboard'))
-
-@app.route('/ticket/<int:ticket_id>/add_report', methods=['POST'])
-def add_report(ticket_id):
-    if 'user_id' not in session: return redirect(url_for('login'))
-    
-    comment = request.form.get('comment')
-    file = request.files.get('file')
-    
-    files = {'file': (file.filename, file.read())} if file else None
-    data = {'comment': comment}
-    
-    requests.post(f"{BACKEND_URL}/tickets/{ticket_id}/reports", data=data, files=files)
-    return redirect(url_for('ticket_detail', ticket_id=ticket_id))
 
 @app.route('/admin', methods=['GET', 'POST'])
 def admin():
@@ -107,9 +131,13 @@ def admin():
         username = request.form.get('username')
         password = request.form.get('password')
         is_admin = request.form.get('is_admin') == 'on'
+        is_staff = request.form.get('is_staff') == 'on' # ИЗМЕНЕНО: Получаем галочку сотрудника
         
         requests.post(f"{BACKEND_URL}/auth/users", json={
-            "username": username, "password": password, "is_admin": is_admin
+            "username": username, 
+            "password": password, 
+            "is_admin": is_admin,
+            "is_staff": is_staff # ИЗМЕНЕНО: Отправляем на бэкенд
         })
         flash(f'User {username} created', 'success')
         

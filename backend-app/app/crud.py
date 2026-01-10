@@ -10,7 +10,13 @@ def get_user_by_username(db: Session, username: str):
 
 def create_user(db: Session, user: schemas.UserCreate):
     hashed_password = pwd_context.hash(user.password)
-    db_user = models.User(username=user.username, password_hash=hashed_password, is_admin=user.is_admin)
+    # ИЗМЕНЕНО: Добавлена поддержка поля is_staff при создании пользователя
+    db_user = models.User(
+        username=user.username, 
+        password_hash=hashed_password, 
+        is_admin=user.is_admin,
+        is_staff=user.is_staff  # <-- Теперь сохраняем статус сотрудника
+    )
     db.add(db_user)
     db.commit()
     db.refresh(db_user)
@@ -26,22 +32,48 @@ def create_ticket(db: Session, ticket: schemas.TicketCreate):
     db.refresh(db_ticket)
     return db_ticket
 
-def get_tickets(db: Session, user_id: int = None, is_admin: bool = False):
+# ИЗМЕНЕНО: Логика получения заявок теперь учитывает is_staff
+def get_tickets(db: Session, user_id: int = None, is_admin: bool = False, is_staff: bool = False):
     query = db.query(models.Ticket)
-    if not is_admin:
+    # Если не админ и не сотрудник — показываем только свои заявки
+    if not (is_admin or is_staff):
         query = query.filter((models.Ticket.creator_id == user_id) | (models.Ticket.assignee_id == user_id))
     return query.order_by(desc(models.Ticket.created_at)).all()
+
+# НОВАЯ ФУНКЦИЯ: Получить все заявки (для совместимости с роутером)
+def get_all_tickets(db: Session):
+    return db.query(models.Ticket).order_by(desc(models.Ticket.created_at)).all()
 
 def get_ticket(db: Session, ticket_id: int):
     return db.query(models.Ticket).filter(models.Ticket.id == ticket_id).first()
 
-def delete_last_ticket_check(db: Session, ticket_id: int, user_id: int):
-    last_ticket = db.query(models.Ticket)\
-        .filter(models.Ticket.creator_id == user_id)\
-        .order_by(desc(models.Ticket.created_at))\
-        .first()
-    if last_ticket and last_ticket.id == ticket_id:
-        db.delete(last_ticket)
+# НОВАЯ ФУНКЦИЯ: Редактирование (заменяет логику удаления)
+def update_ticket(db: Session, ticket_id: int, ticket_update: schemas.TicketUpdate, user_id: int, is_staff: bool, is_admin: bool):
+    db_ticket = db.query(models.Ticket).filter(models.Ticket.id == ticket_id).first()
+    if not db_ticket:
+        return None
+
+    # Если сотрудник или админ — обновляем только статус
+    if is_staff or is_admin:
+        if ticket_update.status:
+            db_ticket.status = ticket_update.status
+    
+    # Если автор — обновляем заголовок и описание (если заявка еще не закрыта)
+    elif db_ticket.creator_id == user_id:
+        if ticket_update.title:
+            db_ticket.title = ticket_update.title
+        if ticket_update.description:
+            db_ticket.description = ticket_update.description
+
+    db.commit()
+    db.refresh(db_ticket)
+    return db_ticket
+
+# ИЗМЕНЕНО: Простое удаление для админа (без проверки на "последнюю заявку")
+def delete_ticket_force(db: Session, ticket_id: int):
+    db_ticket = db.query(models.Ticket).filter(models.Ticket.id == ticket_id).first()
+    if db_ticket:
+        db.delete(db_ticket)
         db.commit()
         return True
     return False

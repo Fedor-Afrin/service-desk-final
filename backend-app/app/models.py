@@ -8,6 +8,7 @@ class User(Base):
     username = Column(String, unique=True, index=True)
     password_hash = Column(String)
     is_admin = Column(Boolean, default=False)
+    is_staff = Column(Boolean, default=False) # <--- Добавили это
 
 class Ticket(Base):
     __tablename__ = "tickets"
