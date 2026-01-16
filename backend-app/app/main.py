@@ -1,8 +1,9 @@
 from fastapi import FastAPI
 from app.database import engine, Base, SessionLocal
 from app.routers import auth, tickets
-from app import crud, schemas
+from app import crud, schemas, models  # <--- Добавь импорт models здесь!
 
+# Теперь SQLAlchemy "увидит" классы Ticket и User внутри models
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="Service Desk API")
