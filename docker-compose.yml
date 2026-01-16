@@ -10,7 +10,8 @@ services:
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: service_desk_db
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      # Монтируем базу данных в локальную папку ./postgres_data
+      - ./postgres_data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
@@ -22,10 +23,10 @@ services:
     container_name: sd-api
     restart: always
     environment:
-      # Важно: здесь хост 'db' (имя сервиса), а не 'sd-db'
       DATABASE_URL: postgresql://postgres:postgres@db:5432/service_desk_db
     volumes:
-      - media_data:/app/media
+      # Это то, что ты просил: Mount для файлов пользователя
+      - ./media:/app/media
     depends_on:
       db:
         condition: service_healthy
@@ -35,16 +36,14 @@ services:
     container_name: sd-frontend
     restart: always
     environment:
-      # Важно: используем имя сервиса 'api'
       - BACKEND_URL=http://api:8000
       - SECRET_KEY=super-secret-key-change-me
     ports:
       - "8001:5000"
     volumes:
-      - media_data:/app/media
+      # Пробрасываем ту же папку медиа во фронтенд, чтобы он мог отображать картинки
+      - ./media:/app/media
     depends_on:
       - api
 
-volumes:
-  postgres_data:
-  media_data:
+# Секция Named Volumes больше не нужна, так как мы используем прямые пути (./)
