@@ -60,7 +60,7 @@ jobs:
 
           ssh -F "$HOME/.ssh/config" target <<'CMD'
             set -euo pipefail
-            cd /opt/demo-docker-deploy
+            cd /opt/service-desk-project
 
             # Перезапуск с пересборкой
             docker compose down || true
