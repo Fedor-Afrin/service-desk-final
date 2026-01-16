@@ -53,17 +53,24 @@ def update_ticket(db: Session, ticket_id: int, ticket_update: schemas.TicketUpda
     if not db_ticket:
         return None
 
-    # Если сотрудник или админ — обновляем только статус
+    # Фиксируем, кто последний редактировал заявку
+    db_ticket.last_editor_id = user_id
+
+    # Логика для сотрудников и админов
     if is_staff or is_admin:
         if ticket_update.status:
             db_ticket.status = ticket_update.status
+            # Если сотрудник меняет статус на "in_progress", назначаем его исполнителем автоматически
+            if ticket_update.status == "in_progress" and db_ticket.assignee_id is None:
+                db_ticket.assignee_id = user_id
     
-    # Если автор — обновляем заголовок и описание (если заявка еще не закрыта)
+    # Логика для автора (может править текст, пока не закрыто)
     elif db_ticket.creator_id == user_id:
-        if ticket_update.title:
-            db_ticket.title = ticket_update.title
-        if ticket_update.description:
-            db_ticket.description = ticket_update.description
+        if db_ticket.status != "closed":
+            if ticket_update.title:
+                db_ticket.title = ticket_update.title
+            if ticket_update.description:
+                db_ticket.description = ticket_update.description
 
     db.commit()
     db.refresh(db_ticket)
