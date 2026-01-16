@@ -45,13 +45,13 @@ jobs:
           chmod 600 "$HOME/.ssh/config"
 
       - name: Upload project to target (rsync)
-        shell: bash
         run: |
-          set -euo pipefail
-          # Синхронизируем всё в правильную папку /opt/demo-docker-deploy/
           rsync -az --delete \
-            -e "ssh -F $HOME/.ssh/config" \
-            ./ target:/opt/service-desk-project/
+           -e "ssh -F $HOME/.ssh/config" \
+           --exclude='postgres_data' \
+           --exclude='media' \
+           --exclude='.git' \
+           ./ target:/opt/service-desk-project/
 
       - name: Deploy on target (docker compose up)
         shell: bash
