@@ -51,7 +51,7 @@ jobs:
           # Синхронизируем всё в правильную папку /opt/demo-docker-deploy/
           rsync -az --delete \
             -e "ssh -F $HOME/.ssh/config" \
-            ./ target:/opt/demo-docker-deploy/
+            ./ target:/opt/service-desk-project/
 
       - name: Deploy on target (docker compose up)
         shell: bash
