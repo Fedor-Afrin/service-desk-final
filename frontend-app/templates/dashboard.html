@@ -1,57 +1,65 @@
 {% extends "base.html" %}
-
 {% block content %}
 <h2>Service Desk Dashboard</h2>
 
 <div class="create-box" style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 30px; border: 1px solid #dee2e6;">
     <h3 style="margin-top: 0;">Create New Ticket</h3>
     <form action="{{ url_for('create_ticket') }}" method="post">
-        <div style="margin-bottom: 10px;">
-            <input type="text" name="title" placeholder="Problem title (e.g. Printer not working)" required 
-                   style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #ccc;">
-        </div>
-        <div style="margin-bottom: 10px;">
-            <textarea name="description" placeholder="Please describe details of your issue..." 
-                      style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #ccc; height: 80px;"></textarea>
-        </div>
-        <button type="submit" class="btn-primary" style="background-color: #007bff; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer;">
-            🚀 Create Ticket
-        </button>
+        <input type="text" name="title" placeholder="Problem title" required style="width: 100%; margin-bottom: 10px; padding: 8px;">
+        <textarea name="description" placeholder="Description" style="width: 100%; margin-bottom: 10px; padding: 8px;"></textarea>
+        <button type="submit" class="btn-primary">🚀 Create Ticket</button>
     </form>
 </div>
 
-<table class="tickets-table" style="width: 100%; border-collapse: collapse; margin-top: 20px;">
-    <thead style="background-color: #343a40; color: white;">
+<table class="tickets-table" style="width: 100%; border-collapse: collapse;">
+    <thead style="background: #343a40; color: white;">
         <tr>
-            <th style="padding: 12px; text-align: left;">ID</th>
-            <th style="padding: 12px; text-align: left;">Title & Date</th>
-            <th style="padding: 12px; text-align: left;">Creator</th>
-            <th style="padding: 12px; text-align: left;">Assignee</th>
-            <th style="padding: 12px; text-align: left;">Status</th>
-            <th style="padding: 12px; text-align: left;">Actions</th>
+            <th>ID</th>
+            <th>Title</th>
+            <th>Creator</th>
+            <th>Assignee</th>
+            <th>Status</th>
+            <th>Actions</th>
         </tr>
     </thead>
     <tbody>
         {% for ticket in tickets %}
-        <tr style="border-bottom: 1px solid #dee2e6;">
-            <td style="padding: 12px;">#{{ ticket.id }}</td>
-            <td style="padding: 12px;">
-                <strong>{{ ticket.title }}</strong><br>
-                <small style="color: gray;">
-                    Created: {{ ticket.created_at[:16] if ticket.created_at is string else ticket.created_at.strftime('%Y-%m-%d %H:%M') }}
-                </small>
+        <tr style="border-bottom: 1px solid #ddd;">
+            <td>#{{ ticket.get('id') }}</td>
+            <td>
+                <strong>{{ ticket.get('title') }}</strong><br>
+                <small style="color: gray;">{{ ticket.get('created_at', '')[:16] }}</small>
             </td>
-            <td style="padding: 12px;">
-                <span title="User ID: {{ ticket.creator_id }}">
-                    👤 {{ ticket.creator.username if ticket.creator else "Unknown" }}
-                </span>
+            <td>
+                {# Безопасное получение имени создателя #}
+                👤 {{ ticket.get('creator', {}).get('username', 'System') if ticket.get('creator') else 'System' }}
             </td>
-            <td style="padding: 12px;">
-                {% if ticket.assignee %}
-                    <span style="color: #28a745; font-weight: bold;">🛠 {{ ticket.assignee.username }}</span>
+            <td>
+                {# Безопасное получение исполнителя #}
+                {% if ticket.get('assignee') %}
+                    <span style="color: #28a745; font-weight: bold;">🛠 {{ ticket['assignee'].get('username') }}</span>
                 {% else %}
-                    <span style="color: #6c757d; font-style: italic;">Waiting...</span>
+                    <span style="color: gray; font-style: italic;">Waiting...</span>
                 {% endif %}
             </td>
-            <td style="padding: 12px;">
-                <span class="badge {{ ticket.status }}" style="padding: 5px 10px;
+            <td><span class="badge {{ ticket.get('status') }}">{{ ticket.get('status') }}</span></td>
+            <td>
+                <a href="{{ url_for('ticket_detail', ticket_id=ticket.get('id')) }}" class="btn-small">Open</a>
+                {% if session.get('is_admin') %}
+                <form action="{{ url_for('delete_ticket', ticket_id=ticket.get('id')) }}" method="post" style="display:inline;">
+                    <button type="submit" class="btn-danger" onclick="return confirm('Delete?')">Delete</button>
+                </form>
+                {% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<style>
+    .badge.new { background: #007bff; color: white; padding: 4px 8px; border-radius: 4px; }
+    .badge.in_progress { background: #ffc107; padding: 4px 8px; border-radius: 4px; }
+    .badge.closed { background: #6c757d; color: white; padding: 4px 8px; border-radius: 4px; }
+    th, td { padding: 12px; text-align: left; }
+</style>
+{% endblock %}
